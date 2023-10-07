@@ -1,12 +1,15 @@
 package com.project.springapistudy.menu.domain;
 
-import com.project.springapistudy.JpaAuditing;
+import com.project.springapistudy.common.JpaAuditing;
+import com.project.springapistudy.menu.dto.MenuCreateRequest;
+import com.project.springapistudy.menu.dto.MenuUpdateRequest;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Entity
 @Getter
+@NoArgsConstructor
+@Entity
 @Table(name="menuitem")
 public class MenuItem extends JpaAuditing {
 
@@ -15,34 +18,27 @@ public class MenuItem extends JpaAuditing {
 
     String name;
     int price;
+
     @Enumerated(EnumType.STRING)
     MenuType type;
 
     boolean useYn;
 
-    protected MenuItem() {
-
-    }
-    @Builder
-    protected MenuItem(String id, String name, int price, MenuType type, boolean useYn) {
-        this.id = id;
-        this.name = name;
-        this.price = price;
-        this.type = type;
-        this.useYn = useYn;
+    public MenuItem(MenuCreateRequest menuCreateRequest) {
+        name = menuCreateRequest.getName();
+        price = menuCreateRequest.getPrice();
+        type = menuCreateRequest.getType();
+        useYn = true;
     }
 
-
-    public MenuItemDTO toDTO(){
-        return MenuItemDTO.builder()
-                .id(this.id)
-                .name(this.name)
-                .price(this.price)
-                .type(this.type)
-                .build();
+    public void update(MenuUpdateRequest menuUpdateRequest){
+        id = menuUpdateRequest.getId();
+        name = menuUpdateRequest.getName();
+        price = menuUpdateRequest.getPrice();
+        type = menuUpdateRequest.getType();
     }
 
     public void delete(){
-        this.useYn = false;
+        useYn = false;
     }
 }

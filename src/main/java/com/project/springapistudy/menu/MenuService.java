@@ -2,35 +2,45 @@ package com.project.springapistudy.menu;
 
 import com.project.springapistudy.common.DBException;
 import com.project.springapistudy.menu.domain.MenuItem;
-import com.project.springapistudy.menu.domain.MenuItemDTO;
-import com.project.springapistudy.menu.domain.MenuType;
+import com.project.springapistudy.menu.dto.MenuCreateRequest;
+import com.project.springapistudy.menu.dto.MenuReadRequest;
+import com.project.springapistudy.menu.dto.MenuReadResponse;
+import com.project.springapistudy.menu.dto.MenuUpdateRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @RequiredArgsConstructor
+@Transactional
 @Service
 public class MenuService {
+
     private final MenuItemRepository menuItemRepository;
-    public Page<MenuItemDTO> getMenuList(MenuType menuType, PageRequest pageRequest){
-        return menuItemRepository.getMenuItemsByType(menuType, pageRequest);
-    }
-    public MenuItemDTO getMenuItem(String id) throws RuntimeException {
-        return menuItemRepository.getMenuItemByIdAndUseYnIsTrue(id)
-                .orElseThrow(()-> new DBException.DataNotFound(id))
-                .toDTO();
-    }
-    public MenuItemDTO addMenuItem(MenuItemDTO menuItemDTO){
-        if(menuItemDTO.getId() != null) throw new DataIntegrityViolationException(menuItemDTO.getId());
-        return menuItemRepository.save(menuItemDTO.toEntity()).toDTO();
+
+    @Transactional(readOnly = true)
+    public Page<MenuReadResponse> getMenuList(MenuReadRequest menuListReadRequest){
+        return menuItemRepository.getMenuItemsByType(menuListReadRequest.getType(), PageRequest.of(menuListReadRequest.getPage(), menuListReadRequest.getSize()));
     }
 
-    public MenuItemDTO modifyMenuItem(MenuItemDTO menuItemDTO){
-        if(menuItemRepository.getMenuItemByIdAndUseYnIsTrue(menuItemDTO.getId()).isEmpty()) throw new DBException.DataNotFound(menuItemDTO.getId());
-        return menuItemRepository.save(menuItemDTO.toEntity()).toDTO();
+    @Transactional(readOnly = true)
+    public MenuReadResponse getMenuItem(String id) throws RuntimeException {
+        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYnIsTrue(id)
+                .orElseThrow(()-> new DBException.DataNotFound(id));
+        return MenuReadResponse.fromEntity(menuItem);
+    }
+
+    public String addMenuItem(MenuCreateRequest menuCreateRequest){
+        return menuItemRepository.save(new MenuItem(menuCreateRequest)).getId();
+    }
+
+    public void modifyMenuItem(MenuUpdateRequest menuUpdateRequest){
+        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYnIsTrue(menuUpdateRequest.getId())
+                .orElseThrow(() -> new DBException.DataNotFound(menuUpdateRequest.getId()));
+
+        menuItem.update(menuUpdateRequest);
     }
 
     public void deleteMenuItem(String id){
@@ -38,8 +48,5 @@ public class MenuService {
                 .orElseThrow(()-> new DBException.DataNotFound(id));
 
         menuItem.delete();
-
-        menuItemRepository.save(menuItem);
     }
-
 }

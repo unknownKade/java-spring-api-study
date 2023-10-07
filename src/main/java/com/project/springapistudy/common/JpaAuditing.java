@@ -1,4 +1,4 @@
-package com.project.springapistudy;
+package com.project.springapistudy.common;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
@@ -28,6 +28,4 @@ public class JpaAuditing {
 
     @LastModifiedBy
     private String updateId;
-
-
 }

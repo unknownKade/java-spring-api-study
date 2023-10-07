@@ -8,13 +8,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Locale;
 
 @Slf4j
-@ControllerAdvice
+@RestControllerAdvice
 public class ExceptionController {
     private final MessageSource messageSource;
 
@@ -27,6 +27,7 @@ public class ExceptionController {
         log.error("{} : {}", this.getClass().getSimpleName(),e.getMessage());
         return new ResponseEntity<>(messageSource.getMessage("read.fail", null, Locale.getDefault()), HttpStatus.NOT_FOUND);
     }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<String> handleValidationError(MethodArgumentNotValidException e){
         log.error("{} : {}", this.getClass().getSimpleName(),e.getMessage());
@@ -46,7 +47,7 @@ public class ExceptionController {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleAll(IllegalArgumentException e){
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e){
         log.error("{} : {}", e.getClass().getSimpleName(), e.getMessage());
         return new ResponseEntity<>(messageSource.getMessage("internal.error", null, Locale.getDefault()), HttpStatus.EXPECTATION_FAILED);
     }

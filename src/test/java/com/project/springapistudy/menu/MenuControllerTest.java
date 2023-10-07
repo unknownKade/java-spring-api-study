@@ -1,9 +1,11 @@
 package com.project.springapistudy.menu;
 
 import com.project.springapistudy.CustomPageImpl;
-import com.project.springapistudy.menu.domain.MenuItemDTO;
 import com.project.springapistudy.menu.domain.MenuType;
-import org.junit.jupiter.api.BeforeEach;
+import com.project.springapistudy.menu.dto.MenuCreateRequest;
+import com.project.springapistudy.menu.dto.MenuReadResponse;
+import com.project.springapistudy.menu.dto.MenuUpdateRequest;
+import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,70 +30,81 @@ public class MenuControllerTest {
     private TestRestTemplate restTemplate;
     @Autowired
     private MessageSource messageSource;
-    private MenuItemDTO testItem;
+
     private final String baseUrl = "http://localhost:8080/menu";
+
+    public String initializeTest(){
+        MenuCreateRequest menuCreateRequest = MenuCreateRequest.builder()
+                .name("아메리카노")
+                .price(4500)
+                .type(MenuType.COFFEE)
+                .build();
+
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(baseUrl, menuCreateRequest, String.class);
+        return responseEntity.getBody();
+    }
 
 
     @DisplayName("메뉴 페이지 조회 테스트")
     @Test
     public void getMenuPageTest(){
-        String url = baseUrl + "/COFFEE/0/3";
+        MenuType type = MenuType.COFFEE;
+        String query = "?type="+ type.name() + "&size=3&page=0";
 
-        ResponseEntity<CustomPageImpl<MenuItemDTO>> responseEntity = restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<CustomPageImpl<MenuItemDTO>>() {});
+        ResponseEntity<CustomPageImpl<MenuReadResponse>> responseEntity = restTemplate.exchange(baseUrl + query, HttpMethod.GET, null,new ParameterizedTypeReference<>(){});
 
-        MenuItemDTO testItem = (MenuItemDTO) responseEntity.getBody().getContent().get(0);
+        List<MenuReadResponse> testItems = responseEntity.getBody().getContent();
 
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(testItem.getType()).isEqualTo(testItem.getType());
+        testItems.forEach((testItem) -> assertThat(testItem.getType()).isEqualTo(type));
     }
 
     @DisplayName("메뉴 하나 조회 테스트")
     @Test
     public void getMenuItemTest(){
-        String url = baseUrl + "/" + testItem.getId();
+        String id = initializeTest();
+        String url = baseUrl + "/" + id;
 
-        ResponseEntity<MenuItemDTO> responseEntity = restTemplate.getForEntity(url, MenuItemDTO.class);
-
-        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(responseEntity.getBody().getName()).isEqualTo(testItem.getName());
-    }
-
-    @BeforeEach
-    @DisplayName("메뉴 추가 테스트")
-    @Test
-    public void addMenuItemTest(){
-        String name = "아메리카노";
-        int price = 4500;
-        MenuItemDTO newMenu = MenuItemDTO.builder()
-                .name(name)
-                .price(price)
-                .type(MenuType.COFFEE)
-                .build();
-
-        ResponseEntity<MenuItemDTO> responseEntity = restTemplate.postForEntity(baseUrl, newMenu, MenuItemDTO.class);
+        ResponseEntity<MenuReadResponse> responseEntity = restTemplate.getForEntity(url, MenuReadResponse.class);
 
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(responseEntity.getBody().getName()).isEqualTo(name);
-        testItem = responseEntity.getBody();
+        assertThat(responseEntity.getBody().getId()).isEqualTo(id);
     }
 
     @DisplayName("메뉴 수정 테스트")
     @Test
     public void modifyMenuItemTest(){
+        String id = initializeTest();
         String name = "라떼";
+        int price = 5000;
+        MenuType type = MenuType.COFFEE;
 
-        testItem.setName("라떼");
-        ResponseEntity<MenuItemDTO> responseEntity = restTemplate.exchange(baseUrl, HttpMethod.PUT, new HttpEntity<>(testItem), MenuItemDTO.class );
+        MenuUpdateRequest menuUpdateRequest = MenuUpdateRequest.builder()
+                .id(id)
+                .name(name)
+                .price(price)
+                .type(type)
+                .build();
 
-        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(responseEntity.getBody().getName()).isEqualTo(name);
+        ResponseEntity<MenuReadResponse> responseEntity = restTemplate.exchange(baseUrl, HttpMethod.PUT, new HttpEntity<>(menuUpdateRequest), MenuReadResponse.class );
+
+        SoftAssertions softAssertions = new SoftAssertions();
+        softAssertions.assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
+        softAssertions.assertThat(responseEntity.getBody().getId()).isEqualTo(id);
+        softAssertions.assertThat(responseEntity.getBody().getName()).isEqualTo(name);
+        softAssertions.assertThat(responseEntity.getBody().getPrice()).isEqualTo(price);
+        softAssertions.assertThat(responseEntity.getBody().getType()).isEqualTo(type);
     }
 
-    @DisplayName("메뉴 하나 조회 테스트")
+    @DisplayName("메뉴 삭제 테스트")
     @Test
     public void deleteMenuItemTest(){
-        String url = baseUrl + "/" + testItem.getId();
+        String id = initializeTest();
+        String url = baseUrl + "/" + id;
+
         restTemplate.delete(url);
+        ResponseEntity<MenuReadResponse> responseEntity = restTemplate.getForEntity(url, MenuReadResponse.class);
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @DisplayName("메뉴조회 메뉴없음 오류 테스트")
@@ -104,32 +118,30 @@ public class MenuControllerTest {
         assertThat(responseEntity.getBody()).isEqualTo(messageSource.getMessage("read.fail", null, Locale.getDefault()));
     }
 
-    @DisplayName("메뉴 이름 누락 오류 테스트")
-    @Test
-    public void addMenuItemNoItem(){
-        testItem.setName(null);
-
-        ResponseEntity<String> responseEntity = restTemplate.postForEntity(baseUrl, testItem, String.class);
-
-        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
-    }
-
     @DisplayName("메뉴 긴 이름 오류 테스트")
     @Test
     public void addMenuItemLongName(){
-        testItem.setName("아메리카노".repeat(5));
+        MenuCreateRequest menuCreateRequest = MenuCreateRequest.builder()
+                .name("아메리카노".repeat(5))
+                .price(4500)
+                .type(MenuType.COFFEE)
+                .build();
 
-        ResponseEntity<String> responseEntity = restTemplate.postForEntity(baseUrl, testItem, String.class);
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(baseUrl, menuCreateRequest, String.class);
 
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
 
-    @DisplayName("메뉴수정 음수 가격 오류 테스트")
+    @DisplayName("메뉴 음수 가격 오류 테스트")
     @Test
     public void modifyMenuItemNegativePrice(){
-        testItem.setPrice(-1);
+        MenuCreateRequest menuCreateRequest = MenuCreateRequest.builder()
+                .name("아메리카노")
+                .price(-1)
+                .type(MenuType.COFFEE)
+                .build();
 
-        ResponseEntity<String> responseEntity = restTemplate.exchange(baseUrl, HttpMethod.PUT, new HttpEntity<>(testItem), String.class);
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(baseUrl, menuCreateRequest, String.class);
 
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
     }
