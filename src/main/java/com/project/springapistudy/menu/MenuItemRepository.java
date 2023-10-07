@@ -12,9 +12,9 @@ import java.util.Optional;
 
 public interface MenuItemRepository extends JpaRepository<MenuItem, String> {
 
-    Optional<MenuItem> getMenuItemByIdAndUseYnIsTrue(String id);
+    Optional<MenuItem> getMenuItemByIdAndUseYn(String id, boolean useYn);
 
-    @Query("select new com.project.springapistudy.menu.dto.MenuReadResponse(m.id, m.name, m.price, m.type) from MenuItem m where m.useYn = true and (:type is null or m.type = :type)")
-    Page<MenuReadResponse> getMenuItemsByType(MenuType type, Pageable pageable);
+    @Query("select new com.project.springapistudy.menu.dto.MenuReadResponse(m.id, m.name, m.price, m.type) from MenuItem m where m.useYn != :useYn and (:type is null or m.type = :type)")
+    Page<MenuReadResponse> getMenuItemsByType(MenuType type, boolean useYn, Pageable pageable);
 
 }

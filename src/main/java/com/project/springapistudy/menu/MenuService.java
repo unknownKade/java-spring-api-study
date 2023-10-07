@@ -21,13 +21,13 @@ public class MenuService {
     private final MenuItemRepository menuItemRepository;
 
     @Transactional(readOnly = true)
-    public Page<MenuReadResponse> getMenuList(MenuReadRequest menuListReadRequest){
-        return menuItemRepository.getMenuItemsByType(menuListReadRequest.getType(), PageRequest.of(menuListReadRequest.getPage(), menuListReadRequest.getSize()));
+    public Page<MenuReadResponse> getMenuList(MenuReadRequest menuListReadRequest, boolean isAdmin){
+        return menuItemRepository.getMenuItemsByType(menuListReadRequest.getType(), isAdmin, PageRequest.of(menuListReadRequest.getPage(), menuListReadRequest.getSize()));
     }
 
     @Transactional(readOnly = true)
-    public MenuReadResponse getMenuItem(String id) throws RuntimeException {
-        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYnIsTrue(id)
+    public MenuReadResponse getMenuItem(String id, boolean isAdmin) throws RuntimeException {
+        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYn(id, !isAdmin)
                 .orElseThrow(()-> new DBException.DataNotFound(id));
         return MenuReadResponse.fromEntity(menuItem);
     }
@@ -37,14 +37,14 @@ public class MenuService {
     }
 
     public void modifyMenuItem(MenuUpdateRequest menuUpdateRequest){
-        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYnIsTrue(menuUpdateRequest.getId())
+        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYn(menuUpdateRequest.getId(), true)
                 .orElseThrow(() -> new DBException.DataNotFound(menuUpdateRequest.getId()));
 
         menuItem.update(menuUpdateRequest);
     }
 
     public void deleteMenuItem(String id){
-        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYnIsTrue(id)
+        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYn(id, true)
                 .orElseThrow(()-> new DBException.DataNotFound(id));
 
         menuItem.delete();

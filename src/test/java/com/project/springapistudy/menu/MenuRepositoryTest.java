@@ -35,7 +35,7 @@ public class MenuRepositoryTest {
     public void getMenuPageTest(){
         MenuItem testItem = initializeTest();
 
-        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYnIsTrue(testItem.getId())
+        MenuItem menuItem = menuItemRepository.getMenuItemByIdAndUseYn(testItem.getId(), false)
                 .orElseThrow( () -> new DBException.DataNotFound(testItem.getId()));
         MenuReadResponse menuReadResponse = MenuReadResponse.fromEntity(menuItem);
 

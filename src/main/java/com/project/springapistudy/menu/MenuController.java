@@ -18,12 +18,17 @@ public class MenuController {
 
     @GetMapping
     public Page<MenuReadResponse> getMenuList(@ModelAttribute MenuReadRequest menuListReadRequest){
-        return menuService.getMenuList(menuListReadRequest);
+        return menuService.getMenuList(menuListReadRequest, false);
+    }
+
+    @GetMapping("/admin")
+    public Page<MenuReadResponse> geMenuListAdmin(@ModelAttribute MenuReadRequest menuListReadRequest){
+        return menuService.getMenuList(menuListReadRequest, true);
     }
 
     @GetMapping("/{id}")
     public MenuReadResponse getMenuItem(@PathVariable String id){
-        return menuService.getMenuItem(id);
+        return menuService.getMenuItem(id, false);
     }
 
     @PostMapping
